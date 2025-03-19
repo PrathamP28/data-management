@@ -23,7 +23,8 @@ host= config["database"]["host"]
 user= config["database"]["user"]
 password= config["database"]["password"]
 database= config["database"]["database"]
-
+login_user= config["login"]["user"]
+login_password= config["login"]["password"]
 
 mydb = mysql.connector.connect(
     host=host,
@@ -146,8 +147,8 @@ def editItem():
             style = tb.Style("darkly")
 
             edit.title("Edit")
-            ex = int((edit.winfo_width()+2775)//2)
-            ey = int((edit.winfo_height()+600)//2)
+            ex = int((edit.winfo_screenwidth()+925)//2)
+            ey = int((edit.winfo_screenheight()-280)//2)
             edit.geometry(f"240x280+{str(ex)}+{str(ey)}")
             edit.resizable(width=False, height=False)
             labelframe = tb.LabelFrame(edit, text="Edit Data", bootstyle="light", padding=10)  
@@ -193,9 +194,10 @@ def login():
     password = entry_password.get()
     
     # if username == "a" and password == "a":
-    if True:
+    if username == login_user and password == login_password:
         login_window.withdraw()  # Hide the login window instead of destroying it
         open_home_page()
+
     else:
         messagebox.showerror("Login Failed", "Invalid Username or Password")
 
@@ -206,8 +208,8 @@ def open_home_page():
 
 
     app.title("DM")
-    hpx = int((app.winfo_width()+1000)//2)
-    hpy = int((app.winfo_height()+600)//2)
+    hpx = int((app.winfo_screenwidth()-880)//2)
+    hpy = int((app.winfo_screenheight()-400)//2)
     app.geometry(f"880x400+{str(hpx)}+{str(hpy)}")
     app.resizable(width=False, height=False)
     
@@ -278,9 +280,6 @@ def open_home_page():
     treeview1.column("Role",minwidth=100,width=100)
     
     displayTree()
-
-
-
 
 
 # Creating login window
