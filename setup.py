@@ -22,12 +22,18 @@ mydb = mysql.connector.connect(
     host=host,
     user=user,
     password=password,
-    database=database
 )
 
 mycursor = mydb.cursor()
 
 mycursor.execute("CREATE DATABASE database1")
+
+mycursor.close()
+mydb = mysql.connector.connect(
+    host=host,
+    user=user,
+    password=password,
+)
 
 mycursor.execute("CREATE TABLE database1 (name VARCHAR(255), username VARCHAR(255), mail VARCHAR(255), role VARCHAR(255))")
 
