@@ -1,3 +1,4 @@
 ttkbootstrap
 mysql-connector-python
 pandas
+openpyxl

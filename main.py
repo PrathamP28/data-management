@@ -57,29 +57,58 @@ def selectItem():
     global selectedItem,index
     selectedItem = treeview1.selection()
     index = treeview1.index(selectedItem)
-    
-
 
 def generate_username(name,role):
     n = random.randint(100, 999)
     username = f"{role[0].lower()}{name.lower()}{n}"
     return username
 
+def isDigit(string):
+    string = list(string)
+    for letters in string:
+        if letters.isdecimal():
+            return True
+    return False
+
+def checkMail(enteredMail):
+    mycursor.execute("SELECT * FROM database1")
+    rows = mycursor.fetchall()
+    selectItem()
+    for i,item in enumerate(rows):
+        if (enteredMail in item) and (i != index):
+            return True
+    return False
+
+def checkMail1(enteredMail):
+    mycursor.execute("SELECT * FROM database1")
+    rows = mycursor.fetchall()
+    selectItem()
+    for item in rows:
+        if (enteredMail in item):
+            return True
+    return False
+
 def submit():
     name = entry1.get()
     mail = entry2.get()
     role = combo.get()
     username = generate_username(name,role)
-    if name.strip() == "" or mail.strip() == "":
-        messagebox.showerror("field must be entered.","field must be entered.")
-
+    if checkMail1(mail):
+        messagebox.showerror("Email already Entered","The Email you're trying to enter already exsist")
     else:
-        additem(name,username,mail,role)
-        entry1.delete(0,END)
-        entry2.delete(0,END)
-        combo.set("User")
-        displayTree()
+        if isDigit(name):
+            messagebox.showerror("Name not Valid","Enter a Valid Name")
+        
+        else:
+            if name.strip() == "" or mail.strip() == "":
+                messagebox.showerror("field must be entered.","field must be entered.")
 
+            else:
+                additem(name,username,mail,role)
+                entry1.delete(0,END)
+                entry2.delete(0,END)
+                combo.set("User")
+                displayTree()
 
 def additem(name,username,mail,role):
     sql = "INSERT INTO database1 (name, username, mail, role) VALUES (%s, %s, %s, %s)"
@@ -100,7 +129,6 @@ def removeItem():
     except:
         messagebox.showerror("Nothing Selected","Select an Item to Delete")
 
-
 def editItem():
     global inAction,edit
     data = fetch_data()
@@ -109,19 +137,23 @@ def editItem():
         newName = edit_entry1.get()
         newMail = edit_entry2.get()
         newRole = edit_combo.get()
-
-        if newName.strip() == "" or newMail.strip() == "":
-            messagebox.showerror("Nothing Entered","Field must be Entered")
+        if checkMail(newMail):
+            messagebox.showerror("Email already Entered","The Email you're trying to enter already exsist")
         else:
-            inAction = False
-            delete = f"DELETE FROM database1 WHERE username = '{data[index][1]}'"
-            mycursor.execute(delete)
+            if isDigit(newName):
+                messagebox.showerror("Name not Valid","Enter a Valid Name")
+            else:
+                if newName.strip() == "" or newMail.strip() == "":
+                    messagebox.showerror("Nothing Entered","Field must be Entered")
+                else:
+                    inAction = False
+                    delete = f"DELETE FROM database1 WHERE username = '{data[index][1]}'"
+                    mycursor.execute(delete)
 
-            mydb.commit()
-            additem(newName,userName,newMail,newRole)
-            edit.destroy()
-            displayTree()
-
+                    mydb.commit()
+                    additem(newName,userName,newMail,newRole)
+                    edit.destroy()
+                    displayTree()
 
     def close():
         global inAction
@@ -142,6 +174,8 @@ def editItem():
             
             edit = tb.Toplevel(app)
             inAction = True
+            p1 = tb.PhotoImage(file = 'icon.png') 
+            edit.iconphoto(False, p1) 
             data = fetch_data()
             userName = data[index][1]
 
@@ -200,40 +234,44 @@ def excel():
     query = "SELECT * FROM database1"
     df = pd.read_sql(query, conn)
 
-    df.to_excel("excel\\database.xlsx", index=False, engine="openpyxl")
-    conn.close()
+    df.to_excel("excel\\database.xlsx", index=False,engine="openpyxl")
     file_path = os.path.abspath("excel\\database.xlsx")
     folder_path = os.path.dirname(file_path)
-    os.startfile(folder_path) 
-
-
+    os.startfile(folder_path)
+    conn.close()
 
 def login():
-    username = entry_username.get()
+    # username = entry_username.get()
     password = entry_password.get()
     
-    # if username == "a" and password == "a":
-    if username == login_user and password == login_password:
-        login_window.withdraw()  # Hide the login window instead of destroying it
+    # if username == login_user and password == login_password:
+    if password == login_password:
+        login_window.withdraw()
         open_home_page()
 
     else:
         messagebox.showerror("Login Failed", "Invalid Username or Password")
 
+
+def openFolder():
+    file_path = os.path.abspath("excel\\database.xlsx")
+    folder_path = os.path.dirname(file_path)
+    os.startfile(folder_path)
+
 def open_home_page():
-    global entry1 ,entry2 ,combo, treeFrame1,treeview1,app
-    app = tb.Toplevel(login_window)  # Attach to main window
+    global entry1 ,entry2 ,combo,treeview1,app
+    app = tb.Toplevel(login_window) 
     style = tb.Style("darkly")  
+    p1 = tb.PhotoImage(file = 'icon.png') 
+    app.iconphoto(False, p1) 
 
-
-    app.title("DM")
+    app.title("Role Manager")
     hpx = int((app.winfo_screenwidth()-880)//2)
     hpy = int((app.winfo_screenheight()-400)//2)
     app.geometry(f"880x400+{str(hpx)}+{str(hpy)}")
     app.resizable(width=False, height=False)
     
-
-    app.protocol("WM_DELETE_WINDOW", on_close)  # Handle window close
+    app.protocol("WM_DELETE_WINDOW", on_close) 
 
     theme_selection = tb.Frame(app, padding=(10, 10, 10, 0))
     theme_selection.pack(fill=X)
@@ -245,10 +283,12 @@ def open_home_page():
     )
     theme_selected.pack(side=LEFT)
 
-    lbl = tb.Label(theme_selection, text="Select a Database:")
-    theme_cbo = tb.Combobox(theme_selection)
-    theme_cbo.pack(padx=10, side=RIGHT)
-    lbl.pack(side=RIGHT)
+    # lbl = tb.Label(theme_selection, text="Select a Database:")
+    # theme_cbo = tb.Combobox(theme_selection)
+    # theme_cbo.pack(padx=10, side=RIGHT)
+    # lbl.pack(side=RIGHT)
+    open_file = tb.Button(theme_selection, text="Open Excel Folder", bootstyle="success-outline",command=openFolder)
+    open_file.pack(padx=10, side=RIGHT)
 
     labelframe = tb.LabelFrame(app, text="My Data", bootstyle="light", padding=10)  
     labelframe.pack(side=LEFT, anchor="nw", padx=10, pady=10)
@@ -300,10 +340,11 @@ def open_home_page():
     
     displayTree()
 
-
 # Creating login window
 login_window = tb.Window(themename="darkly")
 login_window.title("Login Page")
+p1 = tb.PhotoImage(file = 'icon.png') 
+login_window.iconphoto(False, p1) 
 x = int((login_window.winfo_screenwidth() - 250)//2)
 y = int((login_window.winfo_screenheight() - 250)//2)
 login_window.geometry(f"250x250+{str(x)}+{str(y)}")
@@ -315,9 +356,9 @@ def on_close():
 label_frame = tb.LabelFrame(login_window, text="My Data", bootstyle="light", padding=15)  
 label_frame.pack(padx=10, pady=10, expand=True)
 
-tb.Label(label_frame, text="Username:").pack()
-entry_username = tb.Entry(label_frame)
-entry_username.pack()
+# tb.Label(label_frame, text="Username:").pack()
+# entry_username = tb.Entry(label_frame)
+# entry_username.pack()
 
 tb.Label(label_frame, text="Password:").pack()
 entry_password = tb.Entry(label_frame, show="*")
