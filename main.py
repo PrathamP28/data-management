@@ -4,6 +4,7 @@ from tkinter import messagebox, END
 import configparser
 import mysql.connector
 import random
+import pandas as pd
 import os 
 import sys
 
@@ -188,6 +189,24 @@ def reset():
     mydb.commit()
     displayTree()
 
+def excel():
+    conn = mysql.connector.connect(
+    host=host,
+    user=user,
+    password=password,
+    database=database
+)
+
+    query = "SELECT * FROM database1"
+    df = pd.read_sql(query, conn)
+
+    df.to_excel("excel\\database.xlsx", index=False, engine="openpyxl")
+    conn.close()
+    file_path = os.path.abspath("excel\\database.xlsx")
+    folder_path = os.path.dirname(file_path)
+    os.startfile(folder_path) 
+
+
 
 def login():
     username = entry_username.get()
@@ -259,7 +278,7 @@ def open_home_page():
     editBtn.grid(row=0, column=1, padx=5, pady=5)
     removeBtn = tb.Button(button_frame, text="Remove", bootstyle="danger-outline",command=removeItem)
     removeBtn.grid(row=0, column=2, padx=5, pady=5)
-    tb.Button(button_frame, text="Advance", bootstyle="danger-outline").grid(row=1, column=0, padx=5, pady=5)
+    tb.Button(button_frame, text="Excel", bootstyle="success-outline",command=excel).grid(row=1, column=0, padx=5, pady=5)
     tb.Button(button_frame, text="Clear all", bootstyle="primary-outline",command=reset).grid(row=1, column=1, padx=5, pady=5)
     tb.Button(button_frame, text="Close", bootstyle="secondary-outline", command=app.destroy and login_window.destroy).grid(row=1, column=2, padx=5, pady=5)
 
