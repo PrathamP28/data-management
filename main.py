@@ -1,33 +1,216 @@
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
-from tkinter import messagebox
-from configparser import ConfigParser 
-  
-configur = ConfigParser() 
-configur.read('config.ini') 
+from tkinter import messagebox, END
+import configparser
+import mysql.connector
+import random
+import os 
+import sys
+
+inAction = False
+
+if getattr(sys, 'frozen', False):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(__file__)
+
+config_path = os.path.join(BASE_DIR, "config.ini")
+
+config = configparser.ConfigParser()
+config.read(config_path)
+
+host= config["database"]["host"]
+user= config["database"]["user"]
+password= config["database"]["password"]
+database= config["database"]["database"]
+
+
+mydb = mysql.connector.connect(
+    host=host,
+    user=user,
+    password=password,
+    database=database
+)
+
+mycursor = mydb.cursor()
+
+def fetch_data():
+    try:
+        mycursor.execute("SELECT * FROM database1")
+        rows = mycursor.fetchall()
+        return rows
+    except mysql.connector.Error as e:
+        print(f"Error: {e}")
+        return []
+    
+def displayTree():
+    for items in treeview1.get_children():
+        treeview1.delete(items)
+
+    data = fetch_data()
+    for row in data:
+        treeview1.insert("",END,text=row[0],values=row[1:])
+
+def selectItem():
+    global selectedItem,index
+    selectedItem = treeview1.selection()
+    index = treeview1.index(selectedItem)
+    
+
+
+def generate_username(name,role):
+    n = random.randint(100, 999)
+    username = f"{role[0].lower()}{name.lower()}{n}"
+    return username
+
+def submit():
+    name = entry1.get()
+    mail = entry2.get()
+    role = combo.get()
+    username = generate_username(name,role)
+    if name.strip() == "" or mail.strip() == "":
+        messagebox.showerror("field must be entered.","field must be entered.")
+
+    else:
+        additem(name,username,mail,role)
+        entry1.delete(0,END)
+        entry2.delete(0,END)
+        combo.set("User")
+        displayTree()
+
+
+def additem(name,username,mail,role):
+    sql = "INSERT INTO database1 (name, username, mail, role) VALUES (%s, %s, %s, %s)"
+    val = (name,username,mail,role)
+    mycursor.execute(sql, val)
+    mydb.commit()
+
+def removeItem():
+    data = fetch_data()
+    selectItem()
+    try:
+        sql = f"DELETE FROM database1 WHERE username = '{data[index][1]}'"
+
+        mycursor.execute(sql)
+
+        mydb.commit()
+        treeview1.delete(selectedItem)
+    except:
+        messagebox.showerror("Nothing Selected","Select an Item to Delete")
+
+
+def editItem():
+    global inAction,edit
+    data = fetch_data()
+    def editData():
+        global inAction
+        newName = edit_entry1.get()
+        newMail = edit_entry2.get()
+        newRole = edit_combo.get()
+
+        if newName.strip() == "" or newMail.strip() == "":
+            messagebox.showerror("Nothing Entered","Field must be Entered")
+        else:
+            inAction = False
+            delete = f"DELETE FROM database1 WHERE username = '{data[index][1]}'"
+            mycursor.execute(delete)
+
+            mydb.commit()
+            additem(newName,userName,newMail,newRole)
+            edit.destroy()
+            displayTree()
+
+
+    def close():
+        global inAction
+        inAction = False
+        edit.destroy()
+
+    if inAction == True:
+        messagebox.showerror("Action already running","Please stop the action to run")
+        edit.destroy()
+        inAction = False
+
+    else:
+        selectItem()
+        if not selectedItem:
+            messagebox.showerror("Nothing Selected","Select an item to edit it")
+            inAction = False
+        else:
+            
+            edit = tb.Toplevel(app)
+            inAction = True
+            data = fetch_data()
+            userName = data[index][1]
+
+            style = tb.Style("darkly")
+
+            edit.title("Edit")
+            ex = int((edit.winfo_width()+2775)//2)
+            ey = int((edit.winfo_height()+600)//2)
+            edit.geometry(f"240x280+{str(ex)}+{str(ey)}")
+            edit.resizable(width=False, height=False)
+            labelframe = tb.LabelFrame(edit, text="Edit Data", bootstyle="light", padding=10)  
+            labelframe.pack(side=LEFT, anchor="nw", padx=10, pady=10)
+
+            edit_title1 = tb.Label(labelframe, text="Enter Your Name:")
+            edit_title1.pack(anchor="w")
+
+            edit_entry1 = tb.Entry(labelframe, width=30)
+            edit_entry1.pack(pady=5, fill=X)
+            edit_entry1.insert(0,data[index][0])
+
+            edit_title2 = tb.Label(labelframe, text="Enter Your Email:")
+            edit_title2.pack(anchor="w")
+
+            edit_entry2 = tb.Entry(labelframe)
+            edit_entry2.pack(pady=5, fill=X)
+            edit_entry2.insert(0,data[index][2])
+
+            edit_combo = tb.Combobox(labelframe, values=["Admin", "User", "Temp"],state="readonly")
+            edit_combo.pack(pady=15, anchor="w")
+            edit_combo.set(f"{data[index][3]}")
+
+            edit_button_frame = tb.Frame(labelframe)
+            edit_button_frame.pack(pady=5)
+
+            edit_editBtn = tb.Button(edit_button_frame, text="Edit Data", bootstyle="warning-outline",command=editData)
+            edit_editBtn.grid(row=0, column=1, padx=5, pady=5)
+
+            edit_close = tb.Button(edit_button_frame,text="Close",bootstyle="secondary-outline",command=close)
+            edit_close.grid(row=0,column=2, padx=5, pady=5)
+
+            edit.mainloop()
+
+def reset():
+    mycursor.execute("DELETE FROM database1")
+    mydb.commit()
+    displayTree()
+
 
 def login():
     username = entry_username.get()
     password = entry_password.get()
     
     # if username == "a" and password == "a":
-    if True == True:
+    if True:
         login_window.withdraw()  # Hide the login window instead of destroying it
         open_home_page()
     else:
         messagebox.showerror("Login Failed", "Invalid Username or Password")
 
 def open_home_page():
+    global entry1 ,entry2 ,combo, treeFrame1,treeview1,app
     app = tb.Toplevel(login_window)  # Attach to main window
     style = tb.Style("darkly")  
 
-    app.title("DM")
-    app.geometry("1000x400")
-    app.resizable(width=False, height=False)
 
-    def on_close():
-        app.destroy()
-        login_window.deiconify()  # Show login window again when closing
+    app.title("DM")
+    hpx = int((app.winfo_width()+1000)//2)
+    hpy = int((app.winfo_height()+600)//2)
+    app.geometry(f"880x400+{str(hpx)}+{str(hpy)}")
+    app.resizable(width=False, height=False)
+    
 
     app.protocol("WM_DELETE_WINDOW", on_close)  # Handle window close
 
@@ -61,37 +244,51 @@ def open_home_page():
     entry2 = tb.Entry(labelframe)
     entry2.pack(pady=5, fill=X)
 
-    combo = tb.Combobox(labelframe, values=["Admin", "User", "Temp"])
+    combo = tb.Combobox(labelframe, values=["Admin", "User", "Temp"],state="readonly")
     combo.pack(pady=15, anchor="w")
-    combo.set("Select Role")
+    combo.set("User")
 
     button_frame = tb.Frame(labelframe)
     button_frame.pack(pady=5, fill=X)
 
-    tb.Button(button_frame, text="Submit", bootstyle="success-outline").grid(row=0, column=0, padx=5, pady=5)
-    tb.Button(button_frame, text="Edit", bootstyle="warning-outline").grid(row=0, column=1, padx=5, pady=5)
-    tb.Button(button_frame, text="Remove", bootstyle="danger-outline").grid(row=0, column=2, padx=5, pady=5)
+    submitbtn = tb.Button(button_frame, text="Submit", bootstyle="success-outline",command=submit)
+    submitbtn.grid(row=0, column=0, padx=5, pady=5)
+    editBtn = tb.Button(button_frame, text="Edit", bootstyle="warning-outline",command=editItem)
+    editBtn.grid(row=0, column=1, padx=5, pady=5)
+    removeBtn = tb.Button(button_frame, text="Remove", bootstyle="danger-outline",command=removeItem)
+    removeBtn.grid(row=0, column=2, padx=5, pady=5)
     tb.Button(button_frame, text="Advance", bootstyle="danger-outline").grid(row=1, column=0, padx=5, pady=5)
-    tb.Button(button_frame, text="Reset", bootstyle="primary-outline").grid(row=1, column=1, padx=5, pady=5)
-    tb.Button(button_frame, text="Close", bootstyle="secondary-outline", command=on_close).grid(row=1, column=2, padx=5, pady=5)
+    tb.Button(button_frame, text="Clear all", bootstyle="primary-outline",command=reset).grid(row=1, column=1, padx=5, pady=5)
+    tb.Button(button_frame, text="Close", bootstyle="secondary-outline", command=app.destroy and login_window.destroy).grid(row=1, column=2, padx=5, pady=5)
 
     treeFrame = tb.LabelFrame(app, text="Data Display", bootstyle="light", padding=10,width= 1000)
-    treeFrame.pack(side=LEFT, anchor="n", padx=10, pady=10)
+    treeFrame.pack(side=LEFT, anchor="n", padx=5, pady=10)
 
-    cols = ["Mail", "Role","Username"]
+    cols = ["Username","Mail", "Role"]
     treeview1 = tb.Treeview(treeFrame, columns=cols, height=14)
     treeview1.pack(padx=5, pady=5, side=TOP, anchor="n",fill="both")
 
     treeview1.heading("#0", text="Name")
-    treeview1.heading("Mail", text="Mail")
-    treeview1.heading("Role", text="Role")
+    treeview1.column("#0",minwidth=100,width=100)
     treeview1.heading("Username", text="Username")
+    treeview1.column("Username",minwidth=100,width=100)
+    treeview1.heading("Mail", text="Mail")
+    treeview1.column("Mail",minwidth=250,width=250)
+    treeview1.heading("Role", text="Role")
+    treeview1.column("Role",minwidth=100,width=100)
+    
+    displayTree()
+
+
+
 
 
 # Creating login window
 login_window = tb.Window(themename="darkly")
 login_window.title("Login Page")
-login_window.geometry("250x250")
+x = int((login_window.winfo_screenwidth() - 250)//2)
+y = int((login_window.winfo_screenheight() - 250)//2)
+login_window.geometry(f"250x250+{str(x)}+{str(y)}")
 login_window.resizable(width=False,height=False)
 
 def on_close():
