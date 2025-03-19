@@ -1,7 +1,0 @@
-All sql Commands
-
-for Create database : CREATE DATABASE "NAME"
-for See all database : SHOW DATABASE
-for Make table : CREATE TABLE "NAME" ("NAME" VARCHAR(255), "NAME" INTEGER(10)) 
-for See all table : SHOW TABLE
-
